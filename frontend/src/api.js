@@ -1,8 +1,12 @@
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "");
+const rawApiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "");
 
-if (!API_URL) {
+if (!rawApiUrl) {
   throw new Error("VITE_API_URL deve ser configurada para o build de producao.");
 }
+
+const API_URL = rawApiUrl.replace(/\/$/, "").endsWith("/api")
+  ? rawApiUrl.replace(/\/$/, "")
+  : `${rawApiUrl.replace(/\/$/, "")}/api`;
 let csrfToken = "";
 
 async function request(path, options = {}) {
