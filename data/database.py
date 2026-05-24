@@ -29,7 +29,7 @@ class PostgresConnection:
         import psycopg
         from psycopg.rows import dict_row
 
-        self.raw = psycopg.connect(database_url, row_factory=dict_row)
+        self.raw = psycopg.connect(database_url, row_factory=dict_row, prepare_threshold=None)
 
     def execute(self, query, params=None):
         cursor = self.raw.cursor()
