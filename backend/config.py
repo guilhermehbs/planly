@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit, urlunsplit
 
 from core.env import load_env_file
 
@@ -17,7 +18,15 @@ def env_list(name, default):
     value = os.environ.get(name)
     if not value:
         return default
-    return [item.strip() for item in value.split(",") if item.strip()]
+    return [normalize_origin(item) for item in value.split(",") if item.strip()]
+
+
+def normalize_origin(value):
+    value = value.strip().rstrip("/")
+    parsed = urlsplit(value)
+    if not parsed.scheme or not parsed.netloc:
+        return value
+    return urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
 
 
 APP_ENV = os.environ.get("PLANLY_ENV", "development").strip().lower()

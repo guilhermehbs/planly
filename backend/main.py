@@ -1,5 +1,6 @@
 import json
 import secrets
+import traceback
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -85,6 +86,7 @@ class ApiHandler(BaseHTTPRequestHandler):
         except ValueError as error:
             self.send_json({"error": str(error)}, status=400)
         except Exception as error:
+            traceback.print_exc()
             message = f"Erro interno: {error}" if PUBLIC_ERROR_DETAILS else "Erro interno."
             self.send_json({"error": message}, status=500)
 
@@ -552,25 +554,28 @@ class ApiHandler(BaseHTTPRequestHandler):
 
     def send_json(self, body, status=200):
         data = json.dumps(body, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_cors_headers()
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("Pragma", "no-cache")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
-        if APP_ENV == "production":
-            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        for name, value in getattr(self, "extra_headers", []):
-            self.send_header(name, value)
-        self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.send_response(status)
+            self.send_cors_headers()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+            if APP_ENV == "production":
+                self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+            for name, value in getattr(self, "extra_headers", []):
+                self.send_header(name, value)
+            self.end_headers()
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError):
+            return
 
     def send_cors_headers(self):
-        origin = self.headers.get("Origin")
+        origin = self.headers.get("Origin", "").rstrip("/")
         if origin in ALLOWED_ORIGINS:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Access-Control-Allow-Credentials", "true")
